@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, List, Tuple
 
 import flask
 import flask_restful
@@ -10,8 +10,8 @@ import application.mongo as mongo
 
 class Base(flask_restful.Resource):
     def __init__(self, backend: mongo.MongoBackend) -> None:
-        self._backend = backend
         self._base_uri = os.getenv("BASE_URI")
+        self._backend = backend
 
     def add_hyper_link_to_book(self, book: Dict[str, Any]) -> Dict[str, Any]:
         book_id = book.pop("book_id")
@@ -42,8 +42,15 @@ class Book(Base):
             return {"message": "No such book exist!!"}
         return self.add_hyper_link_to_book(book)
 
-    def delete(self, book_id: str) -> List[Dict[str, Any]]:
+    def put(self, book_id: str) -> Dict[str, Any]:
+        data = flask.request.get_json()
+        self._backend.update_one_book(book_id=book_id, data=data)
+        return self.add_hyper_link_to_book(
+            self._backend.get_single_book(book_id=book_id)
+        )
+
+    def delete(self, book_id: str) -> Dict[str, Any]:
+        if self._backend.get_single_book(book_id=book_id) is None:
+            return {"message": "No such book exist!!"}
         self._backend.delete_one_book(book_id=book_id)
-        return [
-            self.add_hyper_link_to_book(book) for book in self._backend.get_all_books()
-        ]
+        return {"message": "Book deleted !!"}

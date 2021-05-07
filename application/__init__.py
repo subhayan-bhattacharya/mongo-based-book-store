@@ -18,21 +18,15 @@ load_dotenv(basedir / "app.env")
 def init_app():
     app = flask.Flask(__name__)
     api = flask_restful.Api(app)
+    backend = mongo.MongoBackend(uri=os.getenv("MONGODB_URI"))
     # Initialize the resources
     api.add_resource(
-        resources.Books,
-        "/books",
-        resource_class_kwargs={
-            "backend": mongo.MongoBackend(uri=os.getenv("MONGODB_URI"))
-        },
+        resources.Books, "/books", resource_class_kwargs={"backend": backend}
     )
-
     api.add_resource(
         resources.Book,
         "/book/<string:book_id>",
-        resource_class_kwargs={
-            "backend": mongo.MongoBackend(uri=os.getenv("MONGODB_URI"))
-        },
+        resource_class_kwargs={"backend": backend},
     )
 
     return app
