@@ -6,6 +6,7 @@ import flask
 import flask_restful
 
 import application.mongo as mongo
+from datetime import datetime
 
 
 class Base(flask_restful.Resource):
@@ -16,6 +17,7 @@ class Base(flask_restful.Resource):
     def add_hyper_link_to_book(self, book: Dict[str, Any]) -> Dict[str, Any]:
         book_id = book.pop("book_id")
         book["_link"] = f"{self._base_uri}/book/{book_id}"
+        book["published_year"] = datetime.strftime(book["published_year"], "%Y")
         return book
 
 
@@ -29,6 +31,7 @@ class Books(Base):
     def post(self) -> Tuple[List[Dict[str, Any]], int]:
         data = flask.request.get_json()
         data["book_id"] = str(uuid.uuid1())
+        data["published_year"] = datetime.strptime(str(data["published_year"]), "%Y")
         self._backend.insert_one_book(data=data)
         return [
             self.add_hyper_link_to_book(book) for book in self._backend.get_all_books()
@@ -44,6 +47,9 @@ class Book(Base):
 
     def put(self, book_id: str) -> Dict[str, Any]:
         data = flask.request.get_json()
+        if self._backend.get_single_book(book_id=book_id) is None:
+            return {"message": "No such book exist!!"}
+        data["published_year"] = datetime.strptime(str(data["published_year"]), "%Y")
         self._backend.update_one_book(book_id=book_id, data=data)
         return self.add_hyper_link_to_book(
             self._backend.get_single_book(book_id=book_id)
