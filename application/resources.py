@@ -1,12 +1,12 @@
 import os
 import uuid
+from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 import flask
 import flask_restful
 
 import application.mongo as mongo
-from datetime import datetime
 
 
 class Base(flask_restful.Resource):
@@ -22,11 +22,11 @@ class Base(flask_restful.Resource):
 
 
 class Books(Base):
-    def get(self) -> List[Dict[str, Any]]:
+    def get(self) -> Tuple[List[Dict[str, Any]], int]:
         all_books = [
             self.add_hyper_link_to_book(book) for book in self._backend.get_all_books()
         ]
-        return all_books
+        return all_books, 200
 
     def post(self) -> Tuple[List[Dict[str, Any]], int]:
         data = flask.request.get_json()
@@ -39,24 +39,25 @@ class Books(Base):
 
 
 class Book(Base):
-    def get(self, book_id: str) -> Dict[str, Any]:
+    def get(self, book_id: str) -> Tuple[Dict[str, Any], int]:
         book = self._backend.get_single_book(book_id=book_id)
         if book is None:
-            return {"message": "No such book exist!!"}
-        return self.add_hyper_link_to_book(book)
+            return {"message": "No such book exist!!"}, 400
+        return self.add_hyper_link_to_book(book), 200
 
-    def put(self, book_id: str) -> Dict[str, Any]:
+    def put(self, book_id: str) -> Tuple[Dict[str, Any], int]:
         data = flask.request.get_json()
         if self._backend.get_single_book(book_id=book_id) is None:
-            return {"message": "No such book exist!!"}
+            return {"message": "No such book exist!!"}, 400
         data["published_year"] = datetime.strptime(str(data["published_year"]), "%Y")
         self._backend.update_one_book(book_id=book_id, data=data)
-        return self.add_hyper_link_to_book(
-            self._backend.get_single_book(book_id=book_id)
+        return (
+            self.add_hyper_link_to_book(self._backend.get_single_book(book_id=book_id)),
+            200,
         )
 
-    def delete(self, book_id: str) -> Dict[str, Any]:
+    def delete(self, book_id: str) -> Tuple[Dict[str, Any], int]:
         if self._backend.get_single_book(book_id=book_id) is None:
-            return {"message": "No such book exist!!"}
+            return {"message": "No such book exist!!"}, 400
         self._backend.delete_one_book(book_id=book_id)
-        return {"message": "Book deleted !!"}
+        return {"message": "Book deleted !!"}, 200
